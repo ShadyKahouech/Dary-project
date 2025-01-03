@@ -4,12 +4,15 @@ const {
   getOneUser,
   deleteUser,
   SignIn,
+  verifyToken,
+  loginUser,
 } = require("../controller/userController");
 
 const route = express.Router();
 
-route.get("/getallusers", getAllUsers);
-route.get("/getoneuser", getOneUser);
-route.delete("/deleteuser/:id", deleteUser);
+route.get("/getallusers", verifyToken, getAllUsers);
+route.get("/getoneuser", verifyToken, getOneUser);
+route.delete("/deleteuser/:id", verifyToken, deleteUser);
 route.post("/signin", SignIn);
+route.post("/loginUser", loginUser);
 module.exports = route;

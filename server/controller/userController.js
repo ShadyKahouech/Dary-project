@@ -107,9 +107,72 @@ const SignIn = async (req, res) => {
   }
 };
 
+// verify token
+
+const verifyToken = (req, res, next) => {
+  const token = req.headers["authorization"]?.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({
+      status: "fail",
+      message: "Access denied. No token provided.",
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(token, secret);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(403).json({
+      status: "fail",
+      message: "Invalid token.",
+    });
+  }
+};
+
+// login existing user
+
+const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    //find user by email
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      res.status(404).json({ message: "Invalid email or password" });
+    }
+    // compare the password:
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      res.status(404).json({ message: "Invalid email or password" });
+    }
+    // generate token
+    const token = jwt.sign(
+      {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        image: user.image,
+      },
+      secret,
+      { expiresIn: "1h" }
+    );
+    return res.json({ token });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ message: "Server Error", error: error.message });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getOneUser,
   deleteUser,
   SignIn,
+  verifyToken,
+  loginUser,
 };
