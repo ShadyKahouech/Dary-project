@@ -7,8 +7,24 @@ const sequelize = new Sequelize(config.database, config.user, config.password, {
   dialect: "mysql",
 });
 
-// Now require the User model, passing sequelize and DataTypes
+// Import models
 const User = require("./model/user")(sequelize, DataTypes);
+const Prestataire = require("./model/prestataire")(sequelize, DataTypes);
+const Request = require("./model/request")(sequelize, DataTypes);
+const Availability = require("./model/availability")(sequelize, DataTypes);
+
+// Define associations
+User.hasMany(Request, { foreignKey: "userId", onDelete: "CASCADE" });
+Request.belongsTo(User, { foreignKey: "userId" });
+
+Prestataire.hasMany(Request, { foreignKey: "driverId", onDelete: "CASCADE" });
+Request.belongsTo(Prestataire, { foreignKey: "driverId" });
+
+Prestataire.hasMany(Availability, {
+  foreignKey: "prestataireId",
+  onDelete: "CASCADE",
+});
+Availability.belongsTo(Prestataire, { foreignKey: "prestataireId" });
 
 // Now use sequelize to authenticate and sync the database
 sequelize
@@ -30,4 +46,5 @@ module.exports = {
   Sequelize,
   sequelize,
   User,
+  Prestataire,
 };

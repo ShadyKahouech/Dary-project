@@ -1,6 +1,7 @@
 const express = require("express");
 const CORS = require("cors");
 const userRoute = require("./router/userRouter");
+const prestataireRoute = require("./router/prestataireRoute");
 const helmet = require("helmet");
 
 const PORT = 3000;
@@ -16,6 +17,7 @@ app.use(
 );
 
 app.use("/user", userRoute);
+app.use("/prestataire", prestataireRoute);
 app.get("/", (req, res) => {
   res.send("hello from the server!");
 });
