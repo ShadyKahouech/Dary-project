@@ -2,29 +2,28 @@ module.exports = (sequelize, DataTypes) => {
   const Availability = sequelize.define(
     "Availability",
     {
-      availabilityId: {
+      id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
-        allowNull: false,
       },
-      startTime: {
+      startDate: {
         type: DataTypes.DATE,
         allowNull: false,
       },
-      endTime: {
+      endDate: {
         type: DataTypes.DATE,
         allowNull: false,
       },
-      isAvailable: {
-        type: DataTypes.BOOLEAN,
+      status: {
+        type: DataTypes.STRING,
         allowNull: false,
-        defaultValue: true,
+        defaultValue: "available", // Example: 'available' or 'unavailable'
       },
     },
     {
-      tableName: "availabilities",
-      timestamps: true,
+      tableName: "Availability", // Custom table name
+      timestamps: true, // Adds createdAt and updatedAt fields
     }
   );
 

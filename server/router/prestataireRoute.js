@@ -3,7 +3,8 @@ const {
   getAllPrestataire,
   getOnePrestataire,
   registerPrestataire,
-  verifyToken,
+  updatePrestataire,
+  // verifyToken,
   loginPrestataire,
   deletePrestataire,
 } = require("../controller/prestataireControlleur");
@@ -11,9 +12,10 @@ const {
 const route = express.Router();
 
 route.get("/getallprestataire", getAllPrestataire);
-route.get("/getoneprestataire", verifyToken, getOnePrestataire);
+route.get("/getoneprestataire/:id", getOnePrestataire);
 route.delete("/delete/:id", deletePrestataire);
 route.post("/registerprestataire", registerPrestataire);
 route.post("/login", loginPrestataire);
+route.put("/updatprestataire/:id", updatePrestataire);
 
 module.exports = route;

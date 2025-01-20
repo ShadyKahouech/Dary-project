@@ -3,6 +3,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const cloudinary = require("cloudinary").v2;
+const { generateTokenUser } = require("../service/generateToken");
+const { getUrlImage } = require("../service/cloudinary");
 
 const secret = process.env.JWT_SECRET;
 
@@ -19,7 +21,7 @@ const getAllUsers = async (req, res) => {
     users.length === 0
       ? res.status(404).json({ message: "No users found" })
       : res.status(200).json(users);
-  } catch (err) {
+  } catch (error) {
     res
       .status(500)
       .json({ message: "Failed to retrieve users", error: err.message });
@@ -32,10 +34,10 @@ const getOneUser = async (req, res) => {
     !user
       ? res.status(404).json({ message: "This user is not found" })
       : res.status(200).json(user);
-  } catch (err) {
+  } catch (error) {
     res
       .status(500)
-      .json({ message: "Failed to retrieve a user", error: err.message });
+      .json({ message: "Failed to retrieve this user", error: err.message });
   }
 };
 
@@ -43,7 +45,7 @@ const deleteUser = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    const deleted = await User.destroy({ where: { id: userId } });
+    const deleted = await User.destroy({ where: { userId } });
 
     if (!deleted) {
       return res.status(404).json({ message: "User not found" });
@@ -55,42 +57,6 @@ const deleteUser = async (req, res) => {
       message: "An error occurred while deleting user",
       error: error.message,
     });
-  }
-};
-
-const updateUser = async (req, res) => {
-  const { id } = req.params;
-  const { firstName, lastName, email, image, password } = req.body;
-  try {
-    let imageUrl;
-    if (image) {
-      const uploadedImage = await cloudinary.uploader.upload(image, {
-        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-        api_key: process.env.CLOUDINARY_API_KEY,
-        api_secret: process.env.CLOUDINARY_API_SECRET,
-        resource_type: "auto",
-      });
-      imageUrl = uploadedImage.secure_url; // Save the uploaded image URL
-    }
-    const [update] = await User.update(
-      {
-        firstName,
-        lastName,
-        email,
-        password,
-        image: imageUrl ? [imageUrl] : undefined,
-      },
-      { where: { userId: id } }
-    );
-    if (update) {
-      res.status(200).send({ message: "User updated successfully" });
-    } else {
-      res.status(404).send({ message: "User is not fount" });
-    }
-    const bcrypt = require("bcrypt");
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Error updating the product");
   }
 };
 
@@ -117,25 +83,28 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-const SignIn = async (req, res) => {
+const registerUser = async (req, res) => {
   try {
     const { firstName, lastName, email, password, role, image } = req.body;
-
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Invalid email format" });
     }
-
-    // Validate image for "prestataire" role
-    if (role === "prestataire" && !image) {
-      return res.status(400).json({ message: "An image is required." });
-    }
-
-    // Check if the email is already in use
+    // check if the email is already in use
     const userExist = await User.findOne({ where: { email } });
     if (userExist) {
       return res.status(400).json({ message: "Email is already in use" });
+    }
+    // Validate password
+    const isPasswordValid = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[^_\s]{6,}$/.test(
+      password
+    );
+    if (!isPasswordValid) {
+      return res.status(400).json({
+        message:
+          "Password must include uppercase, lowercase, digit, and be at least 6 characters.",
+      });
     }
 
     // Upload image if provided
@@ -149,45 +118,32 @@ const SignIn = async (req, res) => {
       });
       uploadedImageUrl = uploadResult.secure_url;
     }
-
-    // Validate password
-    const isPasswordValid = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[^_\s]{6,}$/.test(
-      password
-    );
-    if (!isPasswordValid) {
-      return res.status(400).json({
-        message:
-          "Password must include uppercase, lowercase, digit, and be at least 6 characters.",
-      });
-    }
-
-    // Hash password
+    // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create the user
+    //create the user
     const user = await User.create({
       firstName,
       lastName,
       email,
+      password: hashedPassword,
       role,
       image: uploadedImageUrl,
-      password: hashedPassword,
     });
 
-    // Generate JWT
-    const token = jwt.sign(
-      {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-        image: user.image,
-      },
-      secret,
-      { expiresIn: "1h" }
-    );
+    // Generate token
 
+    // const token = jwt.sign(
+    //   {
+    //     firstName: user.firstName,
+    //     lastName: user.lastName,
+    //     id: user.id,
+    //     email: user.email,
+    //     role: user.role,
+    //   },
+    //   secret,
+    //   { expiresIn: "1h" }
+    // );
+    const token = generateTokenUser(user);
     return res.status(201).json({ token, message: "Sign In successful", user });
   } catch (error) {
     console.error(error);
@@ -197,30 +153,72 @@ const SignIn = async (req, res) => {
   }
 };
 
-// login existing user
-
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { firstName, lastName, email, password, role, image } = req.body;
+    let imageUrl;
+    if (image) {
+      const uploadedImage = await cloudinary.uploader.upload(image, {
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+        resource_type: "auto",
+      });
+      if (image && !isValidImageUrl(image)) {
+        return res.status(400).json({ message: "Image URL is not valid." });
+      }
+      imageUrl = uploadedImage.secure_url; // Save the uploaded image URL
+    }
+    let hashedPassword;
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
+    const [update] = await User.update(
+      {
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        role,
+        image: imageUrl,
+      },
+      { where: { userId: id } }
+    );
+    if (update) {
+      res.status(200).send({ message: "User updated successfully" });
+    } else {
+      res.status(404).send({ message: "User is not found" });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error updating the user");
+  }
+};
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
     //find user by email
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      res.status(404).json({ message: "Invalid email or password" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
-    // compare the password:
+    // compare the password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      res.status(404).json({ message: "Invalid email or password" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
     // generate token
-    const token = jwt.sign(
-      {
-        email: user.email,
-        password: user.password,
-      },
-      secret,
-      { expiresIn: "1h" }
-    );
+    // const token = jwt.sign(
+    //   {
+    //     id: user.id,
+    //     email: user.email,
+    //     role: user.role,
+    //   },
+    //   secret,
+    //   { expiresIn: "1h" }
+    // );
+    const token = generateTokenUser(user);
     return res.json({ token });
   } catch (error) {
     console.error(error);
@@ -233,9 +231,9 @@ const loginUser = async (req, res) => {
 module.exports = {
   getAllUsers,
   getOneUser,
-  deleteUser,
-  SignIn,
   verifyToken,
-  loginUser,
+  registerUser,
   updateUser,
+  loginUser,
+  deleteUser,
 };

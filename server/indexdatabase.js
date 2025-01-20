@@ -7,26 +7,54 @@ const sequelize = new Sequelize(config.database, config.user, config.password, {
   dialect: "mysql",
 });
 
-// Import models
+//Import models
 const User = require("./model/user")(sequelize, DataTypes);
 const Prestataire = require("./model/prestataire")(sequelize, DataTypes);
+
 const Request = require("./model/request")(sequelize, DataTypes);
+const Service = require("./model/service")(sequelize, DataTypes);
+const Rating = require("./model/rating")(sequelize, DataTypes);
 const Availability = require("./model/availability")(sequelize, DataTypes);
 
-// Define associations
+// Define relationships
+// 1. User-Request relationship
 User.hasMany(Request, { foreignKey: "userId", onDelete: "CASCADE" });
 Request.belongsTo(User, { foreignKey: "userId" });
 
-Prestataire.hasMany(Request, { foreignKey: "driverId", onDelete: "CASCADE" });
-Request.belongsTo(Prestataire, { foreignKey: "driverId" });
+// 2. Prestataire-Request relationship
+Prestataire.hasMany(Request, {
+  foreignKey: "prestataireId",
+  onDelete: "CASCADE",
+});
+Request.belongsTo(Prestataire, { foreignKey: "prestataireId" });
 
+// 3. Prestataire-Availability relationship
 Prestataire.hasMany(Availability, {
   foreignKey: "prestataireId",
   onDelete: "CASCADE",
 });
 Availability.belongsTo(Prestataire, { foreignKey: "prestataireId" });
+// 4. Service-Request relationship
+Service.hasMany(Request, { foreignKey: "serviceId", onDelete: "SET NULL" });
+Request.belongsTo(Service, { foreignKey: "serviceId" });
 
-// Now use sequelize to authenticate and sync the database
+// 5. User-Rating relationship
+User.hasMany(Rating, { foreignKey: "userId", onDelete: "CASCADE" });
+Rating.belongsTo(User, { foreignKey: "userId" });
+
+// 6. Prestataire-Rating relationship
+Prestataire.hasMany(Rating, {
+  foreignKey: "prestataireId",
+  onDelete: "CASCADE",
+});
+Rating.belongsTo(Prestataire, { foreignKey: "prestataireId" });
+
+// 7. Request-Rating relationship
+Request.hasOne(Rating, { foreignKey: "requestId", onDelete: "CASCADE" });
+Rating.belongsTo(Request, { foreignKey: "requestId" });
+
+// Sync database and authenticate connection
+
 sequelize
   .authenticate()
   .then(() => console.log("Connection has been established successfully"))

@@ -3,8 +3,8 @@ const {
   getAllUsers,
   getOneUser,
   deleteUser,
-  SignIn,
-  verifyToken,
+  registerUser,
+  // verifyToken,
   loginUser,
   updateUser,
 } = require("../controller/userController");
@@ -12,9 +12,9 @@ const {
 const route = express.Router();
 
 route.get("/getallusers", getAllUsers);
-route.get("/getoneuser", getOneUser);
+route.get("/getoneuser/:id", getOneUser);
 route.delete("/deleteuser/:id", deleteUser);
-route.post("/signin", SignIn);
-route.post("/loginUser", loginUser);
+route.post("/register", registerUser);
+route.post("/loginuser", loginUser);
 route.put("/updateuser/:id", updateUser);
 module.exports = route;

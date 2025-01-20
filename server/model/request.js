@@ -1,3 +1,5 @@
+// const prestataire = require("./prestataire");
+
 module.exports = (sequelize, DataTypes) => {
   const Request = sequelize.define(
     "request",
@@ -9,10 +11,15 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       date: {
-        type: DataTypes.STRING,
+        type: DataTypes.DATE,
         allowNull: false,
       },
 
+      PresenceAscenceur: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+      },
+      // The longitude and latitude are gps coordinates
       longitude: {
         type: DataTypes.FLOAT,
         allowNull: false,
@@ -21,15 +28,13 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.FLOAT,
         allowNull: false,
       },
-      // The longitude and latitude are gps coordinates
+
       status: {
-        type: DataTypes.STRING,
+        type: DataTypes.ENUM("pending", "accepted", "refused", "completed"),
         allowNull: false,
-        validate: {
-          isIn: [["pending", "accepted", "refused", "completed"]],
-        },
         defaultValue: "pending",
       },
+
       helper: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -51,19 +56,16 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.ENUM("house", "apartment"),
         allowNull: false,
       },
-      floors: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-      },
+
       floor_number: {
-        type: DataTypes.STRING, // shady
+        type: DataTypes.STRING,
         allowNull: true,
       },
       telephone: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      // add adress for lication by shady
+
       adress: {
         type: DataTypes.STRING,
         allowNull: false,
@@ -74,7 +76,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: true,
         allowNull: false,
       },
-      driverId: {
+      itemsDescription: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        defaultValue: "",
+      },
+      prestataireId: {
         type: DataTypes.INTEGER,
         foreignKey: true,
         allowNull: false,
