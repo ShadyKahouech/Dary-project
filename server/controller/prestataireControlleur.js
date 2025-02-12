@@ -5,6 +5,7 @@ const secret = process.env.JWT_SECRET;
 require("dotenv").config();
 const cloudinary = require("cloudinary").v2;
 const { generateToken } = require("../service/generateToken");
+const passport = require("../service/passportPrestataire");
 
 const getAllPrestataire = async (req, res) => {
   try {
@@ -24,6 +25,7 @@ const getAllPrestataire = async (req, res) => {
 const getOnePrestataire = async (req, res) => {
   try {
     const onePrestataire = await Prestataire.findByPk(req.params.id);
+
     !onePrestataire
       ? res.status(400).json({ message: "This prestataire didn't exist" })
       : res.status(200).send(onePrestataire);
@@ -80,7 +82,7 @@ const registerPrestataire = async (req, res) => {
       discountedPrice,
     } = req.body;
 
-    // Validate email
+    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Invalid email format" });
@@ -92,7 +94,7 @@ const registerPrestataire = async (req, res) => {
       return res.status(400).json({ message: "Email is already in use" });
     }
 
-    // Validate password
+    // Validate password format
     const isPasswordValid = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[^_\s]{6,}$/.test(
       password
     );
@@ -103,53 +105,10 @@ const registerPrestataire = async (req, res) => {
       });
     }
 
-    // Validate images_truck
-    if (
-      !images_truck ||
-      !Array.isArray(images_truck) ||
-      images_truck.length < 3
-    ) {
-      return res.status(400).send("At least 3 images are required.");
-    }
-
-    // Validate and upload images_truck to Cloudinary
-    const uploadedPromises = images_truck.map((image_truck) =>
-      cloudinary.uploader.upload(image_truck, {
-        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-        api_key: process.env.CLOUDINARY_API_KEY,
-        api_secret: process.env.CLOUDINARY_API_SECRET,
-        resource_type: "auto",
-      })
-    );
-
-    const uploadedResults = await Promise.all(uploadedPromises);
-    const newarray = uploadedResults.map((el) => el.secure_url);
-
-    // Upload single image fields to Cloudinary
-    const uploadSingleImage = async (imageField) => {
-      if (imageField) {
-        const result = await cloudinary.uploader.upload(imageField, {
-          cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-          api_key: process.env.CLOUDINARY_API_KEY,
-          api_secret: process.env.CLOUDINARY_API_SECRET,
-          resource_type: "auto",
-        });
-        return result.secure_url;
-      }
-      return null;
-    };
-
-    const uploadedImageUrl = await uploadSingleImage(image);
-    const uploadedPhotoOfCin = await uploadSingleImage(photoOfCin);
-    const uploadedPhotoOfDriverLicence = await uploadSingleImage(
-      photoOfDriverLicence
-    );
-    const uploadedCarteGrise = await uploadSingleImage(carteGrise);
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create Prestataire
+    // Create Prestataire entry
     const prestataire = await Prestataire.create({
       firstName,
       lastName,
@@ -157,11 +116,11 @@ const registerPrestataire = async (req, res) => {
       password: hashedPassword,
       mobile,
       isActive,
-      image: uploadedImageUrl,
-      images_truck: newarray,
-      photoOfCin: uploadedPhotoOfCin,
-      photoOfDriverLicence: uploadedPhotoOfDriverLicence,
-      carteGrise: uploadedCarteGrise,
+      image,
+      images_truck,
+      photoOfCin,
+      photoOfDriverLicence,
+      carteGrise,
       role,
       truck_type,
       experience,
@@ -169,19 +128,9 @@ const registerPrestataire = async (req, res) => {
       discountedPrice,
     });
 
-    // Generate token
-    // const token = jwt.sign(
-    //   {
-    //     email: prestataire.email,
-    //     id: prestataire.prestataireId,
-    //     firstName: prestataire.firstName,
-    //     lastName: prestataire.lastName,
-    //   },
-    //   process.env.JWT_SECRET,
-    //   { expiresIn: "1h" }
-    // );
-
+    // Generate token for the registered Prestataire
     const token = generateToken(prestataire);
+
     return res
       .status(201)
       .json({ token, message: "Sign Up successful", prestataire });
@@ -193,42 +142,29 @@ const registerPrestataire = async (req, res) => {
   }
 };
 
-const loginPrestataire = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    //find by prestataire
-    const prestataire = await Prestataire.findOne({ where: { email } });
-    if (!prestataire) {
-      res.status(400).json({ message: "Invalid email or password" });
+const loginPrestataire = async (req, res, next) => {
+  passport.authenticate(
+    "local",
+    { session: false },
+    (err, prestataire, info) => {
+      if (err) {
+        return res
+          .status(500)
+          .json({ message: "Server error", error: err.message });
+      }
+      if (!prestataire) {
+        return res
+          .status(401)
+          .json({ message: info.message || "Invalid credentials" });
+      }
+
+      // Générer un token JWT pour le prestataire
+      const token = generateToken(prestataire);
+      return res.json({ token, message: "Login successful" });
     }
-    //validate the password
-    const isValidPassword = await bcrypt.compare(
-      password,
-      prestataire.password
-    );
-    if (!isValidPassword) {
-      res.status(400).json({ message: "Invalid email or password" });
-    }
-    // generate token
-    // const token = jwt.sign(
-    //   {
-    //     id: prestataire.id,
-    //     firstName: prestataire.firstName,
-    //     lastName: prestataire.lastName,
-    //     email: prestataire.email,
-    //   },
-    //   secret,
-    //   {
-    //     expiresIn: "1h",
-    //   }
-    // );
-    const token = generateToken(prestataire);
-    res.status(201).send({ token, message: "Signup successful" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send({ message: "Server error", error: err.message });
-  }
+  )(req, res, next);
 };
+
 const updatePrestataire = async (req, res) => {
   try {
     const { id } = req.params;

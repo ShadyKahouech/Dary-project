@@ -5,6 +5,7 @@ require("dotenv").config();
 const cloudinary = require("cloudinary").v2;
 const { generateTokenUser } = require("../service/generateToken");
 const { getUrlImage } = require("../service/cloudinary");
+const passport = require("../service/Passport");
 
 const secret = process.env.JWT_SECRET;
 
@@ -24,20 +25,21 @@ const getAllUsers = async (req, res) => {
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Failed to retrieve users", error: err.message });
+      .json({ message: "Failed to retrieve users", error: error.message });
   }
 };
 
 const getOneUser = async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id);
+
     !user
       ? res.status(404).json({ message: "This user is not found" })
       : res.status(200).json(user);
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Failed to retrieve this user", error: err.message });
+      .json({ message: "Failed to retrieve this user", error: error.message });
   }
 };
 
@@ -45,7 +47,7 @@ const deleteUser = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    const deleted = await User.destroy({ where: { userId } });
+    const deleted = await User.destroy({ where: { id: userId } });
 
     if (!deleted) {
       return res.status(404).json({ message: "User not found" });
@@ -130,19 +132,6 @@ const registerUser = async (req, res) => {
       image: uploadedImageUrl,
     });
 
-    // Generate token
-
-    // const token = jwt.sign(
-    //   {
-    //     firstName: user.firstName,
-    //     lastName: user.lastName,
-    //     id: user.id,
-    //     email: user.email,
-    //     role: user.role,
-    //   },
-    //   secret,
-    //   { expiresIn: "1h" }
-    // );
     const token = generateTokenUser(user);
     return res.status(201).json({ token, message: "Sign In successful", user });
   } catch (error) {
@@ -195,37 +184,24 @@ const updateUser = async (req, res) => {
     res.status(500).send("Error updating the user");
   }
 };
-const loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    //find user by email
-    const user = await User.findOne({ where: { email } });
+
+const loginUser = async (req, res, next) => {
+  passport.authenticate("local", { session: false }, (err, user, info) => {
+    if (err) {
+      return res
+        .status(500)
+        .json({ message: "Server error", error: err.message });
+    }
     if (!user) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res
+        .status(401)
+        .json({ message: info.message || "Invalid credentials" });
     }
-    // compare the password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-    // generate token
-    // const token = jwt.sign(
-    //   {
-    //     id: user.id,
-    //     email: user.email,
-    //     role: user.role,
-    //   },
-    //   secret,
-    //   { expiresIn: "1h" }
-    // );
+
+    // Generate JWT token
     const token = generateTokenUser(user);
     return res.json({ token });
-  } catch (error) {
-    console.error(error);
-    return res
-      .status(500)
-      .json({ message: "Server Error", error: error.message });
-  }
+  })(req, res, next);
 };
 
 module.exports = {

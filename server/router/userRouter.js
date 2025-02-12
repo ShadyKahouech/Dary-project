@@ -1,20 +1,39 @@
 const express = require("express");
+const { authenticate } = require("../service/config");
+
+const route = express.Router();
 const {
   getAllUsers,
   getOneUser,
   deleteUser,
   registerUser,
-  // verifyToken,
   loginUser,
   updateUser,
 } = require("../controller/userController");
+const passportUser = require("../service/Passport");
 
-const route = express.Router();
+// this one work
+route.get(
+  "/getallusers",
 
-route.get("/getallusers", getAllUsers);
-route.get("/getoneuser/:id", getOneUser);
-route.delete("/deleteuser/:id", deleteUser);
+  getAllUsers
+);
+route.get(
+  "/getoneuser/:id",
+  passportUser.authenticate("jwt", { session: false }),
+  getOneUser
+);
+
+route.delete(
+  "/deleteuser/:id",
+  passportUser.authenticate("jwt", { session: false }),
+  deleteUser
+);
 route.post("/register", registerUser);
-route.post("/loginuser", loginUser);
-route.put("/updateuser/:id", updateUser);
+route.post("/login", loginUser);
+route.put(
+  "/updateuser/:id",
+  passportUser.authenticate("jwt", { session: false }),
+  updateUser
+);
 module.exports = route;

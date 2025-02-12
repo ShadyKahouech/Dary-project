@@ -3,12 +3,16 @@ const CORS = require("cors");
 const userRoute = require("./router/userRouter");
 const prestataireRoute = require("./router/prestataireRoute");
 const helmet = require("helmet");
+const passport = require("passport");
 
 const PORT = 3000;
 const app = express();
 app.use(express.json());
 app.use(CORS());
 app.use(helmet());
+
+// Initialize passport
+app.use(passport.initialize());
 
 app.use(
   helmet({
