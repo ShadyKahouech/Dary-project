@@ -4,19 +4,24 @@ const userRoute = require("./router/userRouter");
 const prestataireRoute = require("./router/prestataireRoute");
 const helmet = require("helmet");
 const passport = require("passport");
+const googleRoute = require("./router/googleRoute");
 
 const PORT = 3000;
 const app = express();
 app.use(express.json());
 app.use(CORS());
+
 app.use(helmet());
 
 // Initialize passport
 app.use(passport.initialize());
+app.use("/google", googleRoute);
 
 app.use(
   helmet({
     contentSecurityPolicy: true,
+    crossOriginResourcePolicy: { policy: "same-origin" },
+    xFrameOptions: { action: "deny" },
   })
 );
 

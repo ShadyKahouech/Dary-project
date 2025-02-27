@@ -18,12 +18,12 @@ module.exports = (sequelize, DataTypes) => {
       status: {
         type: DataTypes.STRING,
         allowNull: false,
-        defaultValue: "available", // Example: 'available' or 'unavailable'
+        defaultValue: "available",
       },
     },
     {
-      tableName: "Availability", // Custom table name
-      timestamps: true, // Adds createdAt and updatedAt fields
+      tableName: "Availability",
+      timestamps: true,
     }
   );
 

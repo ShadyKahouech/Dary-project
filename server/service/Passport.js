@@ -4,6 +4,7 @@ const { Strategy: LocalStrategy } = require("passport-local");
 const { Strategy: JwtStrategy, ExtractJwt } = require("passport-jwt");
 const bcrypt = require("bcryptjs");
 const { User } = require("../indexdatabase");
+const { Strategy: GoogleStrategy } = require("passport-google-oauth20");
 
 const dotenv = require("dotenv");
 
@@ -15,8 +16,8 @@ const secret = process.env.JWT_SECRET;
 passportUser.use(
   new LocalStrategy(
     {
-      usernameField: "email", // Use email as the username
-      passwordField: "password", // Use password field
+      usernameField: "email",
+      passwordField: "password",
     },
     async (email, password, done) => {
       try {
@@ -32,7 +33,7 @@ passportUser.use(
           return done(null, false, { message: "Invalid email or password" });
         }
 
-        return done(null, user); // Authentication successful, return the user
+        return done(null, user);
       } catch (error) {
         return done(error);
       }
@@ -55,6 +56,51 @@ passportUser.use(
           return done(null, false, { message: "User not found" });
         }
         return done(null, user); // Return the user if found
+      } catch (error) {
+        return done(error);
+      }
+    }
+  )
+);
+//  Google OAuth Strategy
+passportUser.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "http://localhost:3000/google/login",
+      passReqToCallback: false,
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      console.log("Google Profile:", profile);
+      try {
+        let user = await User.findOne({ where: { googleId: profile.id } });
+
+        // if (!user) {
+        //   // If the user does not exist, create a new one
+        //   user = await User.create({
+        //     googleId: profile.id,
+        //     firstName: profile.name.givenName,
+        //     lastName: profile.name.familyName,
+        //     email: profile.emails[0].value,
+        //     image: profile.photos[0].value,
+        //     scope: ["openid", "profile", "email"],
+        //     password: null, // No password needed for Google users
+        //   });
+        // }
+        if (!user) {
+          // If the user does not exist, create a new one
+          user = await User.create({
+            googleId: profile.id,
+            firstName: profile.name?.givenName || "Unknown",
+            lastName: profile.name?.familyName || "User",
+            email: profile.emails?.[0]?.value || null,
+            image: profile.photos?.[0]?.value || null,
+            password: null, // Google users do not have passwords
+          });
+        }
+
+        return done(null, user);
       } catch (error) {
         return done(error);
       }

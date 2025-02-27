@@ -32,8 +32,8 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
     {
-      tableName: "Rating", // Custom table name
-      timestamps: true, // Adds createdAt and updatedAt fields
+      tableName: "Rating",
+      timestamps: true,
     }
   );
   return Rating;

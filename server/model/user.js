@@ -19,7 +19,7 @@ module.exports = (sequelize, DataTypes) => {
       email: {
         type: DataTypes.STRING(255),
         allowNull: false,
-        unique: { name: "email_unique", msg: "Email must be unique" }, // Use a named constraint
+        unique: { name: "email_unique", msg: "Email must be unique" },
       },
 
       password: {
@@ -32,17 +32,22 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: "utilisateur",
       },
+      googleId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: false,
+      },
       image: {
         type: DataTypes.STRING,
-        allowNull: true, // Optional image
+        allowNull: true,
         validate: {
-          isUrl: true, // Validates that the image is a URL
+          isUrl: true,
         },
       },
     },
     {
-      tableName: "User", // Custom table name
-      timestamps: true, // Adds createdAt and updatedAt fields
+      tableName: "User",
+      timestamps: true,
     }
   );
   return User;

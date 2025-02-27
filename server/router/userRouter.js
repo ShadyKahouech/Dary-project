@@ -1,6 +1,9 @@
 const express = require("express");
 const { authenticate } = require("../service/config");
-
+const passport = require("../service/Passport");
+const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
+dotenv.config();
 const route = express.Router();
 const {
   getAllUsers,
@@ -36,4 +39,5 @@ route.put(
   passportUser.authenticate("jwt", { session: false }),
   updateUser
 );
+
 module.exports = route;
