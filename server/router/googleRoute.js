@@ -20,7 +20,7 @@ route.get(
   "/login",
   passportUser.authenticate("google", {
     session: false,
-    failureRedirect: "/login",
+    failureRedirect: "http://localhost:3001/login",
   }),
   (req, res) => {
     try {
