@@ -76,18 +76,6 @@ passportUser.use(
       try {
         let user = await User.findOne({ where: { googleId: profile.id } });
 
-        // if (!user) {
-        //   // If the user does not exist, create a new one
-        //   user = await User.create({
-        //     googleId: profile.id,
-        //     firstName: profile.name.givenName,
-        //     lastName: profile.name.familyName,
-        //     email: profile.emails[0].value,
-        //     image: profile.photos[0].value,
-        //     scope: ["openid", "profile", "email"],
-        //     password: null, // No password needed for Google users
-        //   });
-        // }
         if (!user) {
           // If the user does not exist, create a new one
           user = await User.create({

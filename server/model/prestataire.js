@@ -39,7 +39,7 @@ module.exports = (sequelize, DataTypes) => {
       isActive: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
-        defaultValue: true,
+        defaultValue: false,
       },
       isConfirmed: {
         type: DataTypes.BOOLEAN,
@@ -96,7 +96,7 @@ module.exports = (sequelize, DataTypes) => {
           "petit camion",
           "grand camion"
         ),
-        allowNull: false,
+        allowNull: true,
       },
       experience: {
         type: DataTypes.TEXT,
@@ -104,12 +104,20 @@ module.exports = (sequelize, DataTypes) => {
       },
       price: {
         type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
+        allowNull: true,
       },
       discountedPrice: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
         defaultValue: 0,
+      },
+      status: {
+        type: DataTypes.STRING,
+        allowNull: true, // we need to make it false
+        validate: {
+          isIn: [["En attente", "Accepter", "Refuser", "admis"]],
+        },
+        defaultValue: "En attente",
       },
     },
     {
